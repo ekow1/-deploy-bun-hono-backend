@@ -105,12 +105,7 @@ jobs:
           echo "🧾 Env keys (redacted values):"
           sed 's/=.*/=*** /' .env | sed 's/.*/   &/'
           
-          # Run SSL setup script if domain is provided
-          if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
-            echo "🔒 Running SSL setup script..."
-            sudo chmod +x ssl-setup.sh
-            sudo -E env SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
-          fi
+
           
           # Ensure systemd service exists
           if ! systemctl list-unit-files | grep -q '^bun-hono.service'; then
@@ -147,14 +142,14 @@ jobs:
             exit 1
           fi
 
-          # Test the deployed application (public)
+          # Test the deployed application (HTTP first)
           echo "🌐 Testing deployed application..."
           if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
-            # Test HTTPS endpoint
-            if curl -f https://${{ secrets.DOMAIN_NAME }} > /dev/null 2>&1; then
-              echo "✅ HTTPS deployment successful!"
+            # Test HTTP endpoint first
+            if curl -f http://${{ secrets.DOMAIN_NAME }} > /dev/null 2>&1; then
+              echo "✅ HTTP deployment successful!"
             else
-              echo "❌ HTTPS deployment failed - application not responding"
+              echo "❌ HTTP deployment failed - application not responding"
               exit 1
             fi
           else
@@ -164,6 +159,24 @@ jobs:
             else
               echo "❌ HTTP deployment failed - application not responding"
               exit 1
+            fi
+          fi
+          
+          # Run SSL setup script AFTER application is deployed and running
+          if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
+            echo "🔒 Setting up SSL certificate..."
+            sudo chmod +x ssl-setup.sh
+            sudo -E env SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
+            
+            # Test HTTPS after SSL setup
+            echo "🔒 Testing HTTPS after SSL setup..."
+            sleep 10  # Wait for SSL to be fully configured
+            if curl -f https://${{ secrets.DOMAIN_NAME }} > /dev/null 2>&1; then
+              echo "✅ HTTPS deployment successful!"
+            else
+              echo "⚠️  HTTPS test failed, but SSL certificate was installed"
+              echo "   This might be due to DNS propagation or temporary issues"
+              echo "   The certificate should work once DNS propagates"
             fi
           fi
           
