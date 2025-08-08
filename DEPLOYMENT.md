@@ -165,6 +165,9 @@ curl http://your-domain.com
    - If sudo prompts for a password, set `VPS_SUDO_PASSWORD` or configure passwordless sudo (NOPASSWD) for the deploy user, or use `root`.
    - `VPS_HOST` can be a domain (ensure DNS A record points to your VPS IP).
 
+6. **Bun install fails: unzip required**
+   - Install it first: `sudo apt install -y unzip`
+
 ### SSL/HTTPS Setup
 
 #### Automatic SSL Setup (Recommended)

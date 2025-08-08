@@ -11,6 +11,10 @@ echo "🚀 Setting up Bun Hono deployment environment..."
 echo "📦 Updating system packages..."
 sudo apt update && sudo apt upgrade -y
 
+# Ensure prerequisites
+echo "🧰 Installing prerequisites (unzip)..."
+sudo apt install -y unzip
+
 # Install Bun
 echo "🍞 Installing Bun..."
 curl -fsSL https://bun.sh/install | bash
