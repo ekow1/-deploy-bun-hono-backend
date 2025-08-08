@@ -78,7 +78,8 @@ jobs:
             cd bun-hono
             
             # Make setup scripts executable and run them
-            echo "🔧 Running deploy-setup.sh..."
+            echo "🔧 Making scripts executable and running deploy-setup.sh..."
+            chmod +x *.sh || true
             chmod +x deploy-setup.sh
             ./deploy-setup.sh
             
@@ -122,6 +123,11 @@ jobs:
             echo "❌ Missing required secret: JWT_SECRET" && exit 1
           fi
           
+          # Ensure all scripts are executable (handle permission after ownership changes)
+          echo "🔧 Ensuring scripts are executable..."
+          sudo chmod +x deploy-setup.sh ssl-setup.sh backup.sh 2>/dev/null || true
+          sudo find . -maxdepth 1 -type f -name "*.sh" -exec chmod +x {} \; || true
+          
           # Ensure service user owns the app directory
           echo "🔑 Setting ownership to www-data for service compatibility..."
           sudo chown -R www-data:www-data /var/www/bun-hono
@@ -133,8 +139,8 @@ jobs:
           # Run SSL setup script if domain is provided
           if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
             echo "🔒 Running SSL setup script..."
-            chmod +x ssl-setup.sh
-            SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
+            sudo chmod +x ssl-setup.sh
+            sudo -E env SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
           fi
           
           # Ensure systemd service exists
