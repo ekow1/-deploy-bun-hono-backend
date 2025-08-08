@@ -97,6 +97,7 @@ jobs:
           
           # Pull latest changes
           echo "📥 Pulling latest changes..."
+          git config --global --add safe.directory /var/www/bun-hono || true
           git fetch origin
           git reset --hard origin/main
           
