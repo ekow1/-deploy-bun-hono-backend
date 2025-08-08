@@ -31,9 +31,44 @@ if ! command -v certbot &> /dev/null; then
     sudo apt install certbot python3-certbot-nginx -y
 fi
 
-# Update nginx configuration with domain name
+# Determine app port (read from .env if available, fallback to 8080)
+APP_PORT=8080
+if [ -f /var/www/bun-hono/.env ]; then
+  PORT_FROM_ENV=$(grep -E '^PORT=' /var/www/bun-hono/.env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+  if [ -n "$PORT_FROM_ENV" ]; then
+    APP_PORT=$PORT_FROM_ENV
+  fi
+fi
+
+# Ensure nginx site exists; if not, create a minimal HTTP config to allow Certbot to proceed
+NGINX_SITE="/etc/nginx/sites-available/bun-hono"
+if [ ! -f "$NGINX_SITE" ]; then
+  echo "🛠️  Nginx site not found. Creating minimal HTTP config at $NGINX_SITE..."
+  sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+  sudo tee "$NGINX_SITE" >/dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN_NAME;
+
+    location / {
+        proxy_pass http://localhost:$APP_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+  sudo ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/bun-hono
+fi
+
+# Update nginx configuration with domain name (idempotent)
 echo "🌐 Updating nginx configuration..."
-sudo sed -i "s/your-domain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/bun-hono
+sudo sed -i "s/your-domain.com/$DOMAIN_NAME/g" "$NGINX_SITE" || true
 
 # Test nginx configuration
 echo "🧪 Testing nginx configuration..."
@@ -68,11 +103,11 @@ echo "🧪 Testing SSL certificate..."
 if curl -f https://$DOMAIN_NAME > /dev/null 2>&1; then
     echo "✅ SSL certificate installed successfully!"
     echo "🌐 Your application is now available at: https://$DOMAIN_NAME"
-    echo "🔍 Testing backend connection on port 8080..."
-    if curl -f http://localhost:8080 > /dev/null 2>&1; then
-        echo "✅ Backend application is running on port 8080"
+    echo "🔍 Testing backend connection on port $APP_PORT..."
+    if curl -f http://localhost:$APP_PORT > /dev/null 2>&1; then
+        echo "✅ Backend application is running on port $APP_PORT"
     else
-        echo "⚠️  Warning: Backend application not responding on port 8080"
+        echo "⚠️  Warning: Backend application not responding on port $APP_PORT"
     fi
 else
     echo "❌ SSL certificate installation failed"

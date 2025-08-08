@@ -125,6 +125,7 @@ sudo certbot certificates
 - **bun: command not found**: Ensure Bun is on PATH for the SSH session:
   - `echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.profile && source ~/.profile`
   - The workflow also attempts to export PATH and symlink Bun to `/usr/local/bin/bun`.
+- **Nginx site file missing**: If `/etc/nginx/sites-available/bun-hono` does not exist, the SSL script now creates a minimal site automatically before running Certbot.
 - **Backups location**: Backups are stored under `~/bun-hono-backups` on the VPS.
 - **SSH host**: You can set `VPS_HOST` to your domain (e.g., `server.ekowlabs.space`) instead of IP.
 - **SSL Certificate**: Domain must point to VPS IP

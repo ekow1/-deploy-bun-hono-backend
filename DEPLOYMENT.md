@@ -177,6 +177,9 @@ curl http://your-domain.com
 8. **Backups location**
    - Backups created by the workflow are stored under `~/bun-hono-backups` on the VPS.
 
+9. **Nginx site file missing**
+   - If `/etc/nginx/sites-available/bun-hono` doesn't exist, run `./ssl-setup.sh <domain>`; it will create a minimal site and enable it before obtaining SSL.
+
 ### SSL/HTTPS Setup
 
 #### Automatic SSL Setup (Recommended)
