@@ -150,15 +150,7 @@ jobs:
             sudo -E env SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
           fi
           
-          # Fix Nginx configuration if needed
-          echo "🔧 Checking and fixing Nginx configuration..."
-          if [ -f "fix-nginx-proxy.sh" ]; then
-            echo "🔧 Running Nginx proxy fix script..."
-            sudo chmod +x fix-nginx-proxy.sh
-            sudo ./fix-nginx-proxy.sh
-          else
-            echo "⚠️  fix-nginx-proxy.sh not found, using default Nginx config"
-          fi
+
           
           # Ensure systemd service exists
           if ! systemctl list-unit-files | grep -q '^bun-hono.service'; then
