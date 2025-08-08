@@ -35,6 +35,18 @@ sudo apt install nginx -y
 echo "🔒 Installing Certbot for SSL..."
 sudo apt install certbot python3-certbot-nginx -y
 
+# Verify nginx plugin is available
+echo "🔧 Verifying nginx plugin for certbot..."
+sudo certbot plugins | grep nginx || {
+    echo "⚠️  Nginx plugin not found. Reinstalling certbot..."
+    sudo apt remove certbot python3-certbot-nginx -y
+    sudo apt install certbot python3-certbot-nginx -y
+    sudo certbot plugins | grep nginx || {
+        echo "❌ Failed to install nginx plugin for certbot"
+        exit 1
+    }
+}
+
 # Create application directory
 echo "📁 Creating application directory..."
 sudo mkdir -p /var/www/bun-hono

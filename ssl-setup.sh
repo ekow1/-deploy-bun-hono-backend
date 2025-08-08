@@ -31,6 +31,19 @@ if ! command -v certbot &> /dev/null; then
     sudo apt install certbot python3-certbot-nginx -y
 fi
 
+# Ensure nginx plugin is available
+echo "🔧 Ensuring nginx plugin is available..."
+sudo certbot --version
+sudo certbot plugins | grep nginx || {
+    echo "⚠️  Nginx plugin not found. Reinstalling certbot with nginx plugin..."
+    sudo apt remove certbot python3-certbot-nginx -y
+    sudo apt install certbot python3-certbot-nginx -y
+    sudo certbot plugins | grep nginx || {
+        echo "❌ Failed to install nginx plugin for certbot"
+        exit 1
+    }
+}
+
 # Determine app port (read from .env if available, fallback to 8080)
 APP_PORT=8080
 if [ -f /var/www/bun-hono/.env ]; then
