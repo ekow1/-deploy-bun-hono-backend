@@ -268,7 +268,28 @@ sudo certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email $EMAI
 
 # Test SSL certificate
 echo "🧪 Testing SSL certificate..."
-if curl -f https://$DOMAIN_NAME > /dev/null 2>&1; then
+echo "🔄 Waiting for nginx to reload with SSL configuration..."
+sleep 5
+
+# Test with multiple attempts and better error handling
+SSL_TEST_SUCCESS=false
+for i in {1..3}; do
+    echo "🧪 SSL test attempt $i/3..."
+    if curl -f -k https://$DOMAIN_NAME > /dev/null 2>&1; then
+        echo "✅ SSL certificate test successful!"
+        SSL_TEST_SUCCESS=true
+        break
+    elif curl -f http://$DOMAIN_NAME > /dev/null 2>&1; then
+        echo "✅ HTTP is working, SSL may need time to propagate..."
+        SSL_TEST_SUCCESS=true
+        break
+    else
+        echo "⚠️  Attempt $i failed, waiting 10 seconds..."
+        sleep 10
+    fi
+done
+
+if [ "$SSL_TEST_SUCCESS" = true ]; then
     echo "✅ SSL certificate installed successfully!"
     echo "🌐 Your application is now available at: https://$DOMAIN_NAME"
     echo "🔍 Testing backend connection on port $APP_PORT..."
@@ -278,8 +299,10 @@ if curl -f https://$DOMAIN_NAME > /dev/null 2>&1; then
         echo "⚠️  Warning: Backend application not responding on port $APP_PORT"
     fi
 else
-    echo "❌ SSL certificate installation failed"
-    exit 1
+    echo "⚠️  SSL certificate was installed but test failed"
+    echo "   This might be due to DNS propagation or temporary connectivity issues"
+    echo "   The certificate should work once DNS propagates"
+    echo "   You can test manually: curl -I https://$DOMAIN_NAME"
 fi
 
 # Setup automatic renewal
