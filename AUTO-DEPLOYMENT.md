@@ -140,6 +140,9 @@ sudo certbot certificates
 - **Permissions**: VPS user needs sudo access
 - **DNS/SSL mismatch during SSL**: The SSL script compares IPv4 records. Ensure your A record points to the VPS IPv4. You can override in CI by setting environment variable `SSL_FORCE=1` (already handled in the workflow script call). If using IPv6/AAAA only, add an A record or adjust DNS.
 - **Workflow times out during SSL**: Ensure DNS is propagated and port 80 is open. Certbot may take time if DNS just changed; re-run after propagation. Increase job timeout if needed.
+- **Connection Refused**: Check if application is running (`sudo systemctl status bun-hono`), verify port 8080 is listening (`sudo netstat -tlnp | grep :8080`), test locally (`curl http://localhost:8080`), check Nginx status (`sudo systemctl status nginx`).
+
+For detailed troubleshooting steps, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
 
 ## 🚀 Deployment Triggers
 
