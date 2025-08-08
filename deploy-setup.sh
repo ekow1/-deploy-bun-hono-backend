@@ -5,6 +5,9 @@
 
 set -e
 
+# Domain configuration: use $DOMAIN_NAME if set, else first arg, else default
+DOMAIN_NAME=${DOMAIN_NAME:-${1:-server.ekowlabs.space}}
+
 echo "🚀 Setting up Bun Hono deployment environment..."
 
 # Update system
@@ -45,11 +48,11 @@ sudo systemctl daemon-reload
 sudo systemctl enable bun-hono
 
 # Configure nginx with SSL support
-echo "🌐 Configuring nginx with SSL support..."
+echo "🌐 Configuring nginx with SSL support for $DOMAIN_NAME..."
 sudo tee /etc/nginx/sites-available/bun-hono << EOF
 server {
     listen 80;
-    server_name server.ekowlabs.space;  # Replace with your domain
+    server_name $DOMAIN_NAME;
     
     # Redirect all HTTP traffic to HTTPS
     return 301 https://\$server_name\$request_uri;
@@ -57,7 +60,7 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name server.ekowlabs.space;  # Your domain
+    server_name $DOMAIN_NAME; 
     
     # SSL configuration will be added by Certbot
     
@@ -122,7 +125,7 @@ sudo ufw allow ssh
 sudo ufw allow 'Nginx Full'
 sudo ufw --force enable
 
-echo "✅ Setup complete!"
+echo "✅ Setup complete for domain: $DOMAIN_NAME"
 echo ""
 echo "📋 Next steps:"
 echo "1. Add your GitHub repository secrets:"
@@ -139,8 +142,8 @@ echo ""
 echo "2. Clone your repository to /var/www/bun-hono"
 echo "3. Create a .env file with your environment variables"
 echo "4. Update the nginx configuration with your domain name"
-echo "5. Run SSL setup: sudo certbot --nginx -d your-domain.com"
+echo "5. Run SSL setup: sudo certbot --nginx -d $DOMAIN_NAME"
 echo "6. Start the service: sudo systemctl start bun-hono"
 echo ""
-echo "🌐 Your application will be available at: https://your-domain.com"
+echo "🌐 Your application will be available at: https://$DOMAIN_NAME"
 echo "🔒 SSL certificate will be automatically renewed" 
