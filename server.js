@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use("*", cors());
 
 
-app.get("/", (c) => {
+app.get("/health", (c) => {
     return c.json({ message: "Server is running" });
 });
 
