@@ -108,6 +108,7 @@ jobs:
           cat > .env << EOF
           PORT=${{ secrets.PORT || 8080 }}
           MONGODB_URI=${{ secrets.MONGODB_URI }}
+          MONGO_URI=${{ secrets.MONGODB_URI }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           RESEND=${{ secrets.RESEND }}
           SENDER_MAIL=${{ secrets.SENDER_MAIL }}
@@ -120,6 +121,14 @@ jobs:
           if [ -z "${{ secrets.JWT_SECRET }}" ]; then
             echo "❌ Missing required secret: JWT_SECRET" && exit 1
           fi
+          
+          # Ensure service user owns the app directory
+          echo "🔑 Setting ownership to www-data for service compatibility..."
+          sudo chown -R www-data:www-data /var/www/bun-hono
+          
+          # Redacted env preview
+          echo "🧾 Env keys (redacted values):"
+          sed 's/=.*/=*** /' .env | sed 's/.*/   &/'
           
           # Run SSL setup script if domain is provided
           if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
@@ -138,6 +147,7 @@ jobs:
           
           # Test the application
           echo "🧪 Testing application..."
+          export $(grep -E '^(PORT|MONGODB_URI|MONGO_URI|JWT_SECRET|RESEND|SENDER_MAIL)=' .env | xargs)
           timeout 30s bun run server.js &
           SERVER_PID=$!
           sleep 5
@@ -154,6 +164,7 @@ jobs:
           
           # Restart the application
           echo "🔄 Restarting application..."
+          sudo systemctl daemon-reload
           sudo systemctl restart bun-hono
           
           # Wait for service to start
@@ -164,7 +175,8 @@ jobs:
             echo "✅ Service is running successfully"
           else
             echo "❌ Service failed to start"
-            sudo systemctl status bun-hono
+            sudo systemctl status bun-hono | sed -n '1,120p'
+            sudo journalctl -u bun-hono -n 100 --no-pager | sed -n '1,200p'
             exit 1
           fi
           
