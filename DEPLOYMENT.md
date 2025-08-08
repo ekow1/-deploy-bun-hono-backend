@@ -177,6 +177,12 @@ curl http://your-domain.com
 8. **Backups location**
    - Backups created by the workflow are stored under `~/bun-hono-backups` on the VPS.
 
+9. **DNS/SSL mismatch during SSL**
+   - The SSL script compares IPv4 addresses (A record) to avoid false IPv6 mismatches. Ensure your domain's A record points to your VPS IPv4. In CI, set `SSL_FORCE=1` to continue despite mismatch.
+
+10. **Workflow timeout during SSL**
+    - Certbot can time out if DNS hasn't propagated or port 80 is blocked. Ensure DNS propagation is complete and port 80 is open, then re-run the workflow.
+
 9. **Nginx site file missing**
    - If `/etc/nginx/sites-available/bun-hono` doesn't exist, run `./ssl-setup.sh <domain>`; it will create a minimal site and enable it before obtaining SSL.
 

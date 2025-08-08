@@ -131,6 +131,8 @@ sudo certbot certificates
 - **SSL Certificate**: Domain must point to VPS IP
 - **Port Conflicts**: Ensure port 8080 is available
 - **Permissions**: VPS user needs sudo access
+- **DNS/SSL mismatch during SSL**: The SSL script compares IPv4 records. Ensure your A record points to the VPS IPv4. You can override in CI by setting environment variable `SSL_FORCE=1` (already handled in the workflow script call). If using IPv6/AAAA only, add an A record or adjust DNS.
+- **Workflow times out during SSL**: Ensure DNS is propagated and port 80 is open. Certbot may take time if DNS just changed; re-run after propagation. Increase job timeout if needed.
 
 ## 🚀 Deployment Triggers
 

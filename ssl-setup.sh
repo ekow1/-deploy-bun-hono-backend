@@ -78,19 +78,22 @@ sudo nginx -t
 echo "🔄 Reloading nginx..."
 sudo systemctl reload nginx
 
-# Check if domain resolves to this server
+# Check if domain resolves to this server (IPv4 comparison to avoid false IPv6 mismatches)
 echo "🔍 Checking domain resolution..."
-SERVER_IP=$(curl -s ifconfig.me)
-DOMAIN_IP=$(dig +short $DOMAIN_NAME | head -1)
+SERVER_IP=$(curl -4 -s ifconfig.me || curl -4 -s icanhazip.com || curl -4 -s api.ipify.org || echo "")
+DOMAIN_IP=$(dig +short A $DOMAIN_NAME | head -1)
 
-if [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
-    echo "⚠️  Warning: Domain $DOMAIN_NAME does not resolve to this server's IP ($SERVER_IP)"
-    echo "   Domain resolves to: $DOMAIN_IP"
+if [ -n "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ] && [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
+    echo "⚠️  Warning: Domain $DOMAIN_NAME IPv4 ($DOMAIN_IP) does not match server IPv4 ($SERVER_IP)"
     echo "   This may cause SSL certificate issues"
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+    if [ -n "$CI" ] || [ "$SSL_FORCE" = "1" ]; then
+        echo "   CI mode detected or SSL_FORCE=1 set. Continuing non-interactively..."
+    else
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
 fi
 
@@ -124,11 +127,13 @@ sudo certbot renew --dry-run
 
 echo ""
 echo "✅ SSL setup completed successfully!"
+
 echo ""
 echo "📋 SSL Certificate Information:"
 echo "   Domain: $DOMAIN_NAME"
 echo "   Certificate Path: /etc/letsencrypt/live/$DOMAIN_NAME/"
 echo "   Auto-renewal: Enabled (runs daily at 12:00 PM)"
+
 echo ""
 echo "🔧 Useful commands:"
 echo "   Check certificate status: sudo certbot certificates"
