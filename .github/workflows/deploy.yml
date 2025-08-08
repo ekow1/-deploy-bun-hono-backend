@@ -1,0 +1,151 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Run tests (if any)
+      run: bun test || echo "No tests found"
+
+    - name: Deploy to VPS
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          set -e
+          
+          echo "🚀 Starting automated deployment..."
+          
+          # Check if this is first-time setup
+          if [ ! -d "/var/www/bun-hono" ]; then
+            echo "🆕 First-time setup detected. Running setup scripts..."
+            
+            # Create application directory
+            echo "📁 Creating application directory..."
+            sudo mkdir -p /var/www/bun-hono
+            sudo chown -R $USER:$USER /var/www/bun-hono
+            
+            # Clone repository
+            echo "📥 Cloning repository..."
+            cd /var/www
+            sudo git clone https://github.com/${{ github.repository }}.git bun-hono
+            sudo chown -R $USER:$USER bun-hono
+            cd bun-hono
+            
+            # Make setup scripts executable and run them
+            echo "🔧 Running deploy-setup.sh..."
+            chmod +x deploy-setup.sh
+            ./deploy-setup.sh
+            
+            echo "✅ First-time setup completed!"
+          fi
+          
+          # Navigate to project directory
+          cd /var/www/bun-hono
+          
+          # Backup current version
+          if [ -d .git ]; then
+            echo "📦 Creating backup..."
+            cp -r . ../bun-hono-backup-$(date +%Y%m%d-%H%M%S) || true
+          fi
+          
+          # Pull latest changes
+          echo "📥 Pulling latest changes..."
+          git fetch origin
+          git reset --hard origin/main
+          
+          # Install dependencies
+          echo "📦 Installing dependencies..."
+          bun install --production
+          
+          # Create .env file
+          echo "🔧 Creating .env file..."
+          cat > .env << EOF
+          PORT=${{ secrets.PORT || 8080 }}
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+          SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
+          EOF
+          
+          # Run SSL setup script if domain is provided
+          if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
+            echo "🔒 Running SSL setup script..."
+            chmod +x ssl-setup.sh
+            ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
+          fi
+          
+          # Test the application
+          echo "🧪 Testing application..."
+          timeout 30s bun run server.js &
+          SERVER_PID=$!
+          sleep 5
+          
+          # Check if server is responding
+          if curl -f http://localhost:${{ secrets.PORT || 8080 }} > /dev/null 2>&1; then
+            echo "✅ Application test successful"
+            kill $SERVER_PID 2>/dev/null || true
+          else
+            echo "❌ Application test failed"
+            kill $SERVER_PID 2>/dev/null || true
+            exit 1
+          fi
+          
+          # Restart the application
+          echo "🔄 Restarting application..."
+          sudo systemctl restart bun-hono
+          
+          # Wait for service to start
+          sleep 5
+          
+          # Check if service is running
+          if sudo systemctl is-active --quiet bun-hono; then
+            echo "✅ Service is running successfully"
+          else
+            echo "❌ Service failed to start"
+            sudo systemctl status bun-hono
+            exit 1
+          fi
+          
+          # Test the deployed application
+          echo "🌐 Testing deployed application..."
+          if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
+            # Test HTTPS endpoint
+            if curl -f https://${{ secrets.DOMAIN_NAME }} > /dev/null 2>&1; then
+              echo "✅ HTTPS deployment successful!"
+            else
+              echo "❌ HTTPS deployment failed - application not responding"
+              exit 1
+            fi
+          else
+            # Test HTTP endpoint
+            if curl -f http://localhost:${{ secrets.PORT || 8080 }} > /dev/null 2>&1; then
+              echo "✅ HTTP deployment successful!"
+            else
+              echo "❌ HTTP deployment failed - application not responding"
+              exit 1
+            fi
+          fi
+          
+          echo "🎉 Deployment completed successfully!" 

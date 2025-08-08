@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "@hono/swagger-ui": "^0.5.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "hono": "^4.8.12",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.17.0",
+    "resend": "^4.8.0",
+    "swagger-jsdoc": "^6.2.8",
+    "zod": "^4.0.15"
+  },
+  "name": "bun-hono",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "dev": "bun run --watch server.js"
+  }
+}
