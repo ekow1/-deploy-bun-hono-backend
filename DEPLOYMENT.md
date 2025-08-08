@@ -1,6 +1,8 @@
-# 🚀 Bun Hono VPS Deployment Guide
+# 🛠️ Bun Hono Manual Deployment Guide
 
-This guide will help you deploy your Bun Hono application to a VPS using GitHub Actions.
+This guide covers **manual deployment** where you set up the VPS environment yourself and use GitHub Actions for code deployment.
+
+> **💡 For fully automated deployment (recommended)**, see [AUTO-DEPLOYMENT.md](./AUTO-DEPLOYMENT.md)
 
 ## 📋 Prerequisites
 
@@ -9,11 +11,11 @@ This guide will help you deploy your Bun Hono application to a VPS using GitHub 
 - A GitHub repository with your code
 - Domain name (optional but recommended)
 
-## 🔧 VPS Setup
+## 🔧 Manual VPS Setup
 
 ### 1. Initial Server Setup
 
-SSH into your VPS and run the setup script:
+SSH into your VPS and run the setup script manually:
 
 ```bash
 # Upload the deploy-setup.sh script to your VPS
@@ -48,8 +50,8 @@ Add your environment variables:
 PORT=8080
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
-RESEND_API_KEY=your_resend_api_key
-SENDER_EMAIL=noreply@yourdomain.com
+RESEND=your_resend_api_key
+SENDER_MAIL=noreply@yourdomain.com
 ```
 
 ## 🔐 GitHub Secrets Setup
@@ -67,8 +69,8 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 | `EMAIL` | Email for SSL notifications | `admin@example.com` |
 | `MONGODB_URI` | MongoDB connection string | `mongodb://user:pass@host:port/db` |
 | `JWT_SECRET` | JWT secret key | `your-super-secret-key` |
-| `RESEND_API_KEY` | Resend API key | `re_123456789` |
-| `SENDER_EMAIL` | Resend sender email | `noreply@yourdomain.com` |
+| `RESEND` | Resend API key | `re_123456789` |
+| `SENDER_MAIL` | Resend sender email | `noreply@yourdomain.com` |
 
 ### Generate SSH Key for GitHub Actions
 
@@ -181,7 +183,7 @@ Or manually install SSL:
 sudo apt install certbot python3-certbot-nginx
 
 # Update nginx configuration with your domain
-sudo sed -i "s/your-domain.com/your-actual-domain.com/g" /etc/nginx/sites-available/bun-hono
+dudo sed -i "s/your-domain.com/your-actual-domain.com/g" /etc/nginx/sites-available/bun-hono
 
 # Install SSL certificate
 sudo certbot --nginx -d your-domain.com --non-interactive --agree-tos --email admin@your-domain.com

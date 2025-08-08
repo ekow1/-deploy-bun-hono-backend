@@ -85,8 +85,8 @@ jobs:
           PORT=${{ secrets.PORT || 8080 }}
           MONGODB_URI=${{ secrets.MONGODB_URI }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
-          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
-          SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
+          RESEND=${{ secrets.RESEND }}
+          SENDER_MAIL=${{ secrets.SENDER_MAIL }}
           EOF
           
           # Run SSL setup script if domain is provided
