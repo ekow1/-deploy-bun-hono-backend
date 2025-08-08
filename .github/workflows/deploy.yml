@@ -150,6 +150,16 @@ jobs:
             sudo -E env SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
           fi
           
+          # Fix Nginx configuration if needed
+          echo "🔧 Checking and fixing Nginx configuration..."
+          if [ -f "fix-nginx-proxy.sh" ]; then
+            echo "🔧 Running Nginx proxy fix script..."
+            sudo chmod +x fix-nginx-proxy.sh
+            sudo ./fix-nginx-proxy.sh
+          else
+            echo "⚠️  fix-nginx-proxy.sh not found, using default Nginx config"
+          fi
+          
           # Ensure systemd service exists
           if ! systemctl list-unit-files | grep -q '^bun-hono.service'; then
             echo "⚙️  Installing systemd service bun-hono.service..."
@@ -203,6 +213,16 @@ jobs:
               echo "❌ HTTP deployment failed - application not responding"
               exit 1
             fi
+          fi
+          
+          # Run comprehensive test if test script exists
+          echo "🧪 Running deployment tests..."
+          if [ -f "test-deployment.sh" ]; then
+            echo "🧪 Running comprehensive deployment test..."
+            sudo chmod +x test-deployment.sh
+            sudo ./test-deployment.sh
+          else
+            echo "⚠️  test-deployment.sh not found, skipping comprehensive test"
           fi
           
           echo "🎉 Deployment completed successfully!" 
