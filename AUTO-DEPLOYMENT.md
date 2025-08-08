@@ -15,13 +15,19 @@ Go to your repository → Settings → Secrets and variables → Actions, and ad
 | `VPS_SSH_PASSPHRASE` | Private key passphrase (optional) | `your-passphrase` |
 | `VPS_SUDO_PASSWORD` | Sudo password for the SSH user (optional) | `your-sudo-password` |
 | `VPS_PORT` | SSH port (optional) | `22` |
-| `PORT` | Application port | `8080` |
-| `DOMAIN_NAME` | Your domain name | `server.ekowlabs.space` |
-| `EMAIL` | Email for SSL notifications | `admin@ekowlabs.space` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://user:pass@host:port/db` |
-| `JWT_SECRET` | JWT secret key | `your-super-secret-key` |
-| `RESEND` | Resend API key | `re_123456789` |
-| `SENDER_MAIL` | Resend sender email | `noreply@ekowlabs.space` |
+| `PORT` | Application port (optional, defaults to 8080) | `8080` |
+| `DOMAIN_NAME` | Your domain name (optional) | `server.ekowlabs.space` |
+| `EMAIL` | Email for SSL notifications (optional) | `admin@ekowlabs.space` |
+| `MONGODB_URI` | MongoDB connection string (required) | `mongodb://user:pass@host:port/db` |
+| `JWT_SECRET` | JWT secret key (required) | `your-super-secret-key` |
+| `RESEND` | Resend API key (optional) | `re_123456789` |
+| `SENDER_MAIL` | Resend sender email (optional) | `noreply@ekowlabs.space` |
+
+- Required: `MONGODB_URI`, `JWT_SECRET`
+- Optional (recommended): `DOMAIN_NAME`, `EMAIL`, `RESEND`, `SENDER_MAIL`
+- Optional (infrastructure): `VPS_SSH_PASSPHRASE`, `VPS_SUDO_PASSWORD`, `VPS_PORT`, `PORT`
+
+If any required secret is missing, the workflow fails early with a clear error.
 
 ### **Step 2: Generate SSH Key**
 ```bash
@@ -45,6 +51,7 @@ git push origin main
 - Install Bun, nginx, SSL certificates
 - Deploy your application
 - Test everything
+- Install and enable the `bun-hono.service` systemd unit if missing
 
 ## 🔄 How It Works
 

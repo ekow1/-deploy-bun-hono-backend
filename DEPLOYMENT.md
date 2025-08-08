@@ -69,10 +69,16 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 | `PORT` | Application port | `8080` |
 | `DOMAIN_NAME` | Your domain name | `example.com` |
 | `EMAIL` | Email for SSL notifications | `admin@example.com` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://user:pass@host:port/db` |
-| `JWT_SECRET` | JWT secret key | `your-super-secret-key` |
+| `MONGODB_URI` | MongoDB connection string (required) | `mongodb://user:pass@host:port/db` |
+| `JWT_SECRET` | JWT secret key (required) | `your-super-secret-key` |
 | `RESEND` | Resend API key | `re_123456789` |
 | `SENDER_MAIL` | Resend sender email | `noreply@yourdomain.com` |
+
+- Required: `MONGODB_URI`, `JWT_SECRET`
+- Optional (recommended): `DOMAIN_NAME`, `EMAIL`, `RESEND`, `SENDER_MAIL`
+- Optional (infrastructure): `VPS_SSH_PASSPHRASE`, `VPS_SUDO_PASSWORD`, `VPS_PORT`
+
+FYI: The automated workflow installs/enables `bun-hono.service` if missing.
 
 ### Generate SSH Key for GitHub Actions
 

@@ -113,11 +113,27 @@ jobs:
           SENDER_MAIL=${{ secrets.SENDER_MAIL }}
           EOF
           
+          # Validate required secrets
+          if [ -z "${{ secrets.MONGODB_URI }}" ]; then
+            echo "❌ Missing required secret: MONGODB_URI" && exit 1
+          fi
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "❌ Missing required secret: JWT_SECRET" && exit 1
+          fi
+          
           # Run SSL setup script if domain is provided
           if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
             echo "🔒 Running SSL setup script..."
             chmod +x ssl-setup.sh
-            ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
+            SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
+          fi
+          
+          # Ensure systemd service exists
+          if ! systemctl list-unit-files | grep -q '^bun-hono.service'; then
+            echo "⚙️  Installing systemd service bun-hono.service..."
+            sudo cp bun-hono.service /etc/systemd/system/
+            sudo systemctl daemon-reload
+            sudo systemctl enable bun-hono
           fi
           
           # Test the application
