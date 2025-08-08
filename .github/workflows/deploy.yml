@@ -89,6 +89,10 @@ jobs:
           # Navigate to project directory
           cd /var/www/bun-hono
           
+          # Ensure SSH user owns repo for git operations
+          echo "🔑 Setting ownership to current user for git operations..."
+          sudo chown -R $USER:$USER /var/www/bun-hono
+          
           # Backup current version (to home directory to avoid permission issues)
           BACKUP_DIR="$HOME/bun-hono-backups"
           mkdir -p "$BACKUP_DIR"
