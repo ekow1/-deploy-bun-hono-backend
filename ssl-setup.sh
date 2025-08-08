@@ -40,10 +40,10 @@ if [ -f /var/www/bun-hono/.env ]; then
   fi
 fi
 
-# Ensure nginx site exists; if not, create a minimal HTTP config to allow Certbot to proceed
+# Ensure nginx site exists with HTTP-only config
 NGINX_SITE="/etc/nginx/sites-available/bun-hono"
 if [ ! -f "$NGINX_SITE" ]; then
-  echo "🛠️  Nginx site not found. Creating minimal HTTP config at $NGINX_SITE..."
+  echo "🛠️  Nginx site not found. Creating HTTP config at $NGINX_SITE..."
   sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
   sudo tee "$NGINX_SITE" >/dev/null << EOF
 server {
@@ -128,6 +128,94 @@ server {
 }
 EOF
   sudo ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/bun-hono
+else
+  # Check if the existing config has SSL directives that need to be removed
+  if grep -q "listen.*443.*ssl" "$NGINX_SITE"; then
+    echo "🔄 Existing config has SSL directives. Recreating HTTP-only config..."
+    sudo cp "$NGINX_SITE" "$NGINX_SITE.backup.$(date +%Y%m%d-%H%M%S)"
+    sudo tee "$NGINX_SITE" >/dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN_NAME;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript application/json;
+    
+    # Proxy all requests to Bun + Hono application
+    location / {
+        proxy_pass http://localhost:$APP_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # Timeout settings
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        
+        # Buffer settings for better performance
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+    }
+    
+    # Health check endpoint
+    location /health {
+        proxy_pass http://localhost:$APP_PORT/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        access_log off;
+    }
+    
+    # API routes
+    location /api/ {
+        proxy_pass http://localhost:$APP_PORT/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        
+        # CORS headers for API
+        add_header Access-Control-Allow-Origin * always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, Authorization" always;
+        
+        # Handle preflight requests
+        if (\$request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin *;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type, Authorization";
+            add_header Content-Length 0;
+            add_header Content-Type text/plain;
+            return 204;
+        }
+    }
+    
+    # Security: Hide nginx version
+    server_tokens off;
+}
+EOF
+  fi
 fi
 
 # Update nginx configuration with domain name (idempotent)
