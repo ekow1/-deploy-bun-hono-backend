@@ -60,9 +60,10 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `VPS_HOST` | Your VPS IP address | `192.168.1.100` |
+| `VPS_HOST` | SSH host (IP or domain) | `server.ekowlabs.space` |
 | `VPS_USERNAME` | SSH username | `ubuntu` |
 | `VPS_SSH_KEY` | Private SSH key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `VPS_SSH_PASSPHRASE` | Private key passphrase (optional) | `your-passphrase` |
 | `VPS_PORT` | SSH port (optional) | `22` |
 | `PORT` | Application port | `8080` |
 | `DOMAIN_NAME` | Your domain name | `example.com` |
@@ -158,6 +159,10 @@ curl http://your-domain.com
    sudo systemctl restart nginx
    ```
 
+5. **SSH auth error (passphrase)**
+   - Set `VPS_SSH_PASSPHRASE` to your key's passphrase or use a deploy key without a passphrase.
+   - `VPS_HOST` can be your domain (e.g., `server.ekowlabs.space`) if DNS A record points to your VPS.
+
 ### SSL/HTTPS Setup
 
 #### Automatic SSL Setup (Recommended)
@@ -183,7 +188,7 @@ Or manually install SSL:
 sudo apt install certbot python3-certbot-nginx
 
 # Update nginx configuration with your domain
-dudo sed -i "s/your-domain.com/your-actual-domain.com/g" /etc/nginx/sites-available/bun-hono
+sudo sed -i "s/your-domain.com/your-actual-domain.com/g" /etc/nginx/sites-available/bun-hono
 
 # Install SSL certificate
 sudo certbot --nginx -d your-domain.com --non-interactive --agree-tos --email admin@your-domain.com

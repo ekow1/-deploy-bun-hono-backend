@@ -9,9 +9,10 @@ Go to your repository → Settings → Secrets and variables → Actions, and ad
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `VPS_HOST` | Your VPS IP address | `192.168.1.100` |
+| `VPS_HOST` | SSH host (IP or domain) | `server.ekowlabs.space` |
 | `VPS_USERNAME` | SSH username | `ubuntu` |
 | `VPS_SSH_KEY` | Private SSH key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `VPS_SSH_PASSPHRASE` | Private key passphrase (optional) | `your-passphrase` |
 | `VPS_PORT` | SSH port (optional) | `22` |
 | `PORT` | Application port | `8080` |
 | `DOMAIN_NAME` | Your domain name | `server.ekowlabs.space` |
@@ -117,6 +118,8 @@ sudo certbot certificates
 4. Check domain DNS points to your VPS
 
 ### **Common Issues**:
+- **SSH auth error (passphrase)**: Set `VPS_SSH_PASSPHRASE` to match your private key passphrase, or use a deploy key without a passphrase.
+- **SSH host**: You can set `VPS_HOST` to your domain (e.g., `server.ekowlabs.space`) instead of IP.
 - **SSL Certificate**: Domain must point to VPS IP
 - **Port Conflicts**: Ensure port 8080 is available
 - **Permissions**: VPS user needs sudo access
