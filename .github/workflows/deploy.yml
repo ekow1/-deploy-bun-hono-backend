@@ -33,8 +33,15 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
         port: ${{ secrets.VPS_PORT || 22 }}
+        request_pty: true
         script: |
           set -e
+          
+          # If sudo requires a password, cache credentials for this session
+          if [ -n "${{ secrets.VPS_SUDO_PASSWORD }}" ]; then
+            echo "Caching sudo credentials..."
+            echo "${{ secrets.VPS_SUDO_PASSWORD }}" | sudo -S -v
+          fi
           
           echo "🚀 Starting automated deployment..."
           

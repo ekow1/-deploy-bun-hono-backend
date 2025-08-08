@@ -64,6 +64,7 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 | `VPS_USERNAME` | SSH username | `ubuntu` |
 | `VPS_SSH_KEY` | Private SSH key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 | `VPS_SSH_PASSPHRASE` | Private key passphrase (optional) | `your-passphrase` |
+| `VPS_SUDO_PASSWORD` | Sudo password for the SSH user (optional) | `your-sudo-password` |
 | `VPS_PORT` | SSH port (optional) | `22` |
 | `PORT` | Application port | `8080` |
 | `DOMAIN_NAME` | Your domain name | `example.com` |
@@ -159,9 +160,10 @@ curl http://your-domain.com
    sudo systemctl restart nginx
    ```
 
-5. **SSH auth error (passphrase)**
-   - Set `VPS_SSH_PASSPHRASE` to your key's passphrase or use a deploy key without a passphrase.
-   - `VPS_HOST` can be your domain (e.g., `server.ekowlabs.space`) if DNS A record points to your VPS.
+5. **SSH or sudo issues in CI**
+   - If your private key has a passphrase, set `VPS_SSH_PASSPHRASE`.
+   - If sudo prompts for a password, set `VPS_SUDO_PASSWORD` or configure passwordless sudo (NOPASSWD) for the deploy user, or use `root`.
+   - `VPS_HOST` can be a domain (ensure DNS A record points to your VPS IP).
 
 ### SSL/HTTPS Setup
 
