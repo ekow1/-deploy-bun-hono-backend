@@ -1,0 +1,91 @@
+name: Server Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain_name:
+        description: 'Domain name for SSL'
+        required: false
+        default: 'server.ekowlabs.space'
+      email:
+        description: 'Email for SSL notifications'
+        required: false
+        default: 'admin@ekowlabs.space'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        request_pty: true
+        script: |
+          set -e
+          
+          # If sudo requires a password, cache credentials for this session
+          if [ -n "${{ secrets.VPS_SUDO_PASSWORD }}" ]; then
+            echo "Caching sudo credentials..."
+            echo "${{ secrets.VPS_SUDO_PASSWORD }}" | sudo -S -v
+          fi
+          
+          echo "🚀 Starting server setup..."
+          
+          # Check if server is already set up
+          if [ -d "/var/www/bun-hono" ]; then
+            echo "⚠️  Server already has bun-hono directory. Skipping setup."
+            echo "   If you want to re-setup, remove /var/www/bun-hono first"
+            exit 0
+          fi
+          
+          # Ensure Bun is on PATH for this session
+          export PATH="$HOME/.bun/bin:$PATH"
+          
+          # Install bun on the VPS if missing
+          if ! command -v bun >/dev/null 2>&1; then
+            echo "🍞 Installing Bun..."
+            sudo apt update -y
+            sudo apt install -y unzip curl
+            curl -fsSL https://bun.sh/install | bash
+            export PATH="$HOME/.bun/bin:$PATH"
+          fi
+
+          # Ensure a globally executable Bun binary for systemd/www-data
+          if [ -x "$HOME/.bun/bin/bun" ]; then
+            echo "Installing Bun binary to /usr/local/bin..."
+            sudo install -m 0755 "$HOME/.bun/bin/bun" /usr/local/bin/bun
+          fi
+          
+          # Create application directory
+          echo "📁 Creating application directory..."
+          sudo mkdir -p /var/www/bun-hono
+          sudo chown -R $USER:$USER /var/www/bun-hono
+          
+          # Clone repository
+          echo "📥 Cloning repository..."
+          cd /var/www
+          sudo git clone https://github.com/${{ github.repository }}.git bun-hono
+          sudo chown -R $USER:$USER bun-hono
+          cd bun-hono
+          
+                     # Make setup scripts executable and run server setup
+           echo "🔧 Making scripts executable and running server-setup.sh..."
+           chmod +x *.sh || true
+           chmod +x server-setup.sh
+           ./server-setup.sh ${{ github.event.inputs.domain_name || 'server.ekowlabs.space' }}
+          
+          echo "✅ Server setup completed!"
+          echo ""
+          echo "📋 Next steps:"
+          echo "1. Add your GitHub secrets for deployment"
+          echo "2. Run the deployment workflow to deploy your application"
+          echo "3. Or manually deploy by running: ./deploy.sh" 

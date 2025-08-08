@@ -1,14 +1,13 @@
 #!/bin/bash
 
-# Bun Hono VPS Deployment Setup Script
-# Run this script on your VPS to set up the deployment environment
-
+# Server Setup Script for Bun + Hono
+# This script sets up the server infrastructure only
 set -e
 
 # Domain configuration: use $DOMAIN_NAME if set, else first arg, else default
 DOMAIN_NAME=${DOMAIN_NAME:-${1:-server.ekowlabs.space}}
 
-echo "🚀 Setting up Bun Hono deployment environment..."
+echo "🚀 Setting up Bun Hono server infrastructure..."
 
 # Update system
 echo "📦 Updating system packages..."
@@ -47,22 +46,12 @@ sudo cp bun-hono.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable bun-hono
 
-# Configure nginx with SSL support
-echo "🌐 Configuring nginx with SSL support for $DOMAIN_NAME..."
+# Configure nginx with HTTP support (SSL will be added by Certbot)
+echo "🌐 Configuring nginx with HTTP support for $DOMAIN_NAME..."
 sudo tee /etc/nginx/sites-available/bun-hono << EOF
 server {
     listen 80;
     server_name $DOMAIN_NAME;
-    
-    # Redirect all HTTP traffic to HTTPS
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN_NAME; 
-    
-    # SSL configuration will be added by Certbot
     
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -160,25 +149,22 @@ sudo ufw allow ssh
 sudo ufw allow 'Nginx Full'
 sudo ufw --force enable
 
-echo "✅ Setup complete for domain: $DOMAIN_NAME"
+echo "✅ Server infrastructure setup completed for domain: $DOMAIN_NAME"
+echo ""
+echo "📋 Infrastructure installed:"
+echo "   ✅ Bun (latest version)"
+echo "   ✅ Node.js (for compatibility)"
+echo "   ✅ Nginx (reverse proxy)"
+echo "   ✅ Certbot (SSL certificates)"
+echo "   ✅ UFW (firewall)"
+echo "   ✅ PM2 (process management)"
+echo "   ✅ Systemd service (bun-hono.service)"
 echo ""
 echo "📋 Next steps:"
-echo "1. Add your GitHub repository secrets:"
-echo "   - VPS_HOST: Your VPS IP address"
-echo "   - VPS_USERNAME: Your VPS username"
-echo "   - VPS_SSH_KEY: Your private SSH key"
-echo "   - VPS_PORT: SSH port (usually 22)"
-echo "   - MONGODB_URI: Your MongoDB connection string"
-echo "   - JWT_SECRET: Your JWT secret key"
-echo "   - RESEND: Your Resend API key"
-echo "   - SENDER_MAIL: Your Resend sender email"
-echo "   - DOMAIN_NAME: Your domain name (for SSL)"
+echo "1. Clone your repository to /var/www/bun-hono"
+echo "2. Create a .env file with your environment variables"
+echo "3. Run SSL setup: sudo certbot --nginx -d $DOMAIN_NAME"
+echo "4. Deploy your application using the deployment workflow"
 echo ""
-echo "2. Clone your repository to /var/www/bun-hono"
-echo "3. Create a .env file with your environment variables"
-echo "4. Update the nginx configuration with your domain name"
-echo "5. Run SSL setup: sudo certbot --nginx -d $DOMAIN_NAME"
-echo "6. Start the service: sudo systemctl start bun-hono"
-echo ""
-echo "🌐 Your application will be available at: https://$DOMAIN_NAME"
+echo "🌐 Your application will be available at: http://$DOMAIN_NAME"
 echo "🔒 SSL certificate will be automatically renewed" 

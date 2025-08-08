@@ -1,4 +1,4 @@
-name: Deploy to VPS
+name: Deploy Application
 
 on:
   push:
@@ -46,47 +46,14 @@ jobs:
           # Ensure Bun is on PATH for this session
           export PATH="$HOME/.bun/bin:$PATH"
           
-          # Install bun on the VPS if missing (safety net)
-          if ! command -v bun >/dev/null 2>&1; then
-            echo "Bun not found. Installing Bun on VPS..."
-            sudo apt update -y
-            sudo apt install -y unzip curl
-            curl -fsSL https://bun.sh/install | bash
-            export PATH="$HOME/.bun/bin:$PATH"
-          fi
-
-          # Ensure a globally executable Bun binary for systemd/www-data
-          if [ -x "$HOME/.bun/bin/bun" ]; then
-            echo "Installing Bun binary to /usr/local/bin..."
-            sudo install -m 0755 "$HOME/.bun/bin/bun" /usr/local/bin/bun
-          fi
-          
-          echo "🚀 Starting automated deployment..."
-          
-          # Check if this is first-time setup
+          # Check if server is set up
           if [ ! -d "/var/www/bun-hono" ]; then
-            echo "🆕 First-time setup detected. Running setup scripts..."
-            
-            # Create application directory
-            echo "📁 Creating application directory..."
-            sudo mkdir -p /var/www/bun-hono
-            sudo chown -R $USER:$USER /var/www/bun-hono
-            
-            # Clone repository
-            echo "📥 Cloning repository..."
-            cd /var/www
-            sudo git clone https://github.com/${{ github.repository }}.git bun-hono
-            sudo chown -R $USER:$USER bun-hono
-            cd bun-hono
-            
-            # Make setup scripts executable and run them
-            echo "🔧 Making scripts executable and running deploy-setup.sh..."
-            chmod +x *.sh || true
-            chmod +x deploy-setup.sh
-            ./deploy-setup.sh
-            
-            echo "✅ First-time setup completed!"
+            echo "❌ Server not set up. Please run the 'Server Setup' workflow first."
+            echo "   Go to Actions → Server Setup → Run workflow"
+            exit 1
           fi
+          
+          echo "🚀 Starting application deployment..."
           
           # Navigate to project directory
           cd /var/www/bun-hono
@@ -95,7 +62,7 @@ jobs:
           echo "🔑 Setting ownership to current user for git operations..."
           sudo chown -R $USER:$USER /var/www/bun-hono
           
-          # Backup current version (to home directory to avoid permission issues)
+          # Backup current version
           BACKUP_DIR="$HOME/bun-hono-backups"
           mkdir -p "$BACKUP_DIR"
           echo "📦 Creating backup in $BACKUP_DIR..."
@@ -130,11 +97,6 @@ jobs:
             echo "❌ Missing required secret: JWT_SECRET" && exit 1
           fi
           
-          # Ensure all scripts are executable (handle permission after ownership changes)
-          echo "🔧 Ensuring scripts are executable..."
-          sudo chmod +x deploy-setup.sh ssl-setup.sh backup.sh 2>/dev/null || true
-          sudo find . -maxdepth 1 -type f -name "*.sh" -exec chmod +x {} \; || true
-          
           # Ensure service user owns the app directory
           echo "🔑 Setting ownership to www-data for service compatibility..."
           sudo chown -R www-data:www-data /var/www/bun-hono
@@ -150,8 +112,6 @@ jobs:
             sudo -E env SSL_FORCE=1 ./ssl-setup.sh ${{ secrets.DOMAIN_NAME }} ${{ secrets.EMAIL || 'admin@example.com' }}
           fi
           
-
-          
           # Ensure systemd service exists
           if ! systemctl list-unit-files | grep -q '^bun-hono.service'; then
             echo "⚙️  Installing systemd service bun-hono.service..."
@@ -160,7 +120,7 @@ jobs:
             sudo systemctl enable bun-hono
           fi
           
-          # Restart the application (skip launching a temporary Bun process to avoid port conflicts)
+          # Restart the application
           echo "🔄 Restarting application..."
           sudo systemctl daemon-reload
           sudo systemctl restart bun-hono
@@ -217,4 +177,4 @@ jobs:
             echo "⚠️  test-deployment.sh not found, skipping comprehensive test"
           fi
           
-          echo "🎉 Deployment completed successfully!" 
+          echo "🎉 Application deployment completed successfully!" 
