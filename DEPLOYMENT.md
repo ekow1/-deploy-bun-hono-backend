@@ -168,6 +168,15 @@ curl http://your-domain.com
 6. **Bun install fails: unzip required**
    - Install it first: `sudo apt install -y unzip`
 
+7. **bun: command not found**
+   - Ensure Bun is on PATH for your SSH session:
+     ```bash
+     echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.profile && source ~/.profile
+     ```
+
+8. **Backups location**
+   - Backups created by the workflow are stored under `~/bun-hono-backups` on the VPS.
+
 ### SSL/HTTPS Setup
 
 #### Automatic SSL Setup (Recommended)

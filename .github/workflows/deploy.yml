@@ -43,6 +43,22 @@ jobs:
             echo "${{ secrets.VPS_SUDO_PASSWORD }}" | sudo -S -v
           fi
           
+          # Ensure Bun is on PATH for this session
+          export PATH="$HOME/.bun/bin:$PATH"
+          
+          # Install bun on the VPS if missing (safety net)
+          if ! command -v bun >/dev/null 2>&1; then
+            echo "Bun not found. Installing Bun on VPS..."
+            sudo apt update -y
+            sudo apt install -y unzip curl
+            curl -fsSL https://bun.sh/install | bash
+            export PATH="$HOME/.bun/bin:$PATH"
+            # Optionally symlink bun to a global location
+            if [ -x "$HOME/.bun/bin/bun" ]; then
+              sudo ln -sf "$HOME/.bun/bin/bun" /usr/local/bin/bun || true
+            fi
+          fi
+          
           echo "🚀 Starting automated deployment..."
           
           # Check if this is first-time setup
@@ -72,11 +88,11 @@ jobs:
           # Navigate to project directory
           cd /var/www/bun-hono
           
-          # Backup current version
-          if [ -d .git ]; then
-            echo "📦 Creating backup..."
-            cp -r . ../bun-hono-backup-$(date +%Y%m%d-%H%M%S) || true
-          fi
+          # Backup current version (to home directory to avoid permission issues)
+          BACKUP_DIR="$HOME/bun-hono-backups"
+          mkdir -p "$BACKUP_DIR"
+          echo "📦 Creating backup in $BACKUP_DIR..."
+          cp -r . "$BACKUP_DIR/bun-hono-backup-$(date +%Y%m%d-%H%M%S)" || echo "Skipping backup due to permissions"
           
           # Pull latest changes
           echo "📥 Pulling latest changes..."
