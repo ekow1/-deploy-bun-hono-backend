@@ -158,31 +158,14 @@ jobs:
             sudo systemctl enable bun-hono
           fi
           
-          # Test the application
-          echo "🧪 Testing application..."
-          export $(grep -E '^(PORT|MONGODB_URI|MONGO_URI|JWT_SECRET|RESEND|SENDER_MAIL)=' .env | xargs)
-          timeout 30s bun run server.js &
-          SERVER_PID=$!
-          sleep 5
-          
-          # Check if server is responding
-          if curl -f http://localhost:${{ secrets.PORT || 8080 }} > /dev/null 2>&1; then
-            echo "✅ Application test successful"
-            kill $SERVER_PID 2>/dev/null || true
-          else
-            echo "❌ Application test failed"
-            kill $SERVER_PID 2>/dev/null || true
-            exit 1
-          fi
-          
-          # Restart the application
+          # Restart the application (skip launching a temporary Bun process to avoid port conflicts)
           echo "🔄 Restarting application..."
           sudo systemctl daemon-reload
           sudo systemctl restart bun-hono
-          
+
           # Wait for service to start
           sleep 5
-          
+
           # Check if service is running
           if sudo systemctl is-active --quiet bun-hono; then
             echo "✅ Service is running successfully"
@@ -192,8 +175,17 @@ jobs:
             sudo journalctl -u bun-hono -n 100 --no-pager | sed -n '1,200p'
             exit 1
           fi
-          
-          # Test the deployed application
+
+          # Health check the deployed application on localhost
+          echo "🩺 Health check (localhost)..."
+          if curl -f http://localhost:${{ secrets.PORT || 8080 }}/health > /dev/null 2>&1 || curl -f http://localhost:${{ secrets.PORT || 8080 }} > /dev/null 2>&1; then
+            echo "✅ Local health check passed"
+          else
+            echo "❌ Local health check failed"
+            exit 1
+          fi
+
+          # Test the deployed application (public)
           echo "🌐 Testing deployed application..."
           if [ ! -z "${{ secrets.DOMAIN_NAME }}" ]; then
             # Test HTTPS endpoint
